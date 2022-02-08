@@ -15,7 +15,7 @@
 *        (e.g. Create(hanger1);)
 *    
 * Visual elements that represent EMS system need to be:
-*    1.) Named monorail1 ... monorailn (n = 2,3,...) in the correct order 
+*    1.) Named monorail1 ... monorailn (n = 1,2,3,...) in the correct order 
 *        occording to path direction
 *    2.) Tag Property of monorail element needs to have a number that 
 *        describes direction (1-left, 2-right, 3-up, 4-down) 
