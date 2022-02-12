@@ -94,11 +94,11 @@ var
     tcMonorail          : array[1..NUM_OF_MON] of TIsi_ImgTmplContainer;    //Monorail Elements     
     monorailIdentifier  : array[1..NUM_OF_MON] of integer;                  //Monorail Type Identifier
     monorailPath        : array[1..NUM_OF_MON] of integer;                  //Individaual Element Path
-    totalPath           : integer = 0;                                      //Total Monorail Path
-    i_monorail          : integer = 1;                                      //Interation of Monorail 
+    totalPath           : UInt32 = 0;                                       //Total Monorail Path
+    i_monorail          : UInt8 = 1;                                        //Interation of Monorail 
     
     rtHanger            : array[1..NUM_OF_FG] of TIsi_TmplContainer;        //Hangers Visual Representation
-    i_hanger            : integer = 1;                                      //Iteration of Hanger  
+    i_hanger            : UInt8 = 1;                                        //Iteration of Hanger  
 
 //Event : Form On Create
 procedure isi_FormCreate(Sender: TObject);
@@ -223,7 +223,7 @@ end;
 //Setup Hanger
 procedure SetupHangers();
 var
-    i : integer;
+    i : UInt8;
 begin
     for i := 1 to NUM_OF_FG do
     begin 
@@ -237,7 +237,7 @@ end;
 //Name Hanger FG's
 procedure NameHangerFGs();
 var
-    i, j : integer;
+    i, j : UInt8;
 begin
     //Function gruop name / e.g. '302EHV301'
     j := 1;
@@ -252,7 +252,7 @@ end;
 //Setup Tag Item Lists
 procedure SetupTagItemLists();
 var
-    i : integer;
+    i : UInt8;
 begin
     //Setup TagItemLists
     for i := 1 to NUM_OF_FG do
@@ -286,7 +286,7 @@ end;
 //Setup Tag Items
 procedure SetupTagItems(tagItemList_h : TIsi_TagItemList; indexFg : integer);
 var
-    i : integer;
+    i : UInt8;
 begin
     for i:=1 to NUM_OF_FG do
     begin
@@ -301,7 +301,8 @@ end;
 //Event : On Tag Item Value Changed      
 procedure isi_OnValueChange(Sender : TObject; AValue : Variant; AValueValid : Boolean);
 var
-    position_t, i : integer;
+    position_t : integer;
+    i          : UInt8;
 begin
     try
     for i := 1 to NUM_OF_FG do
@@ -335,8 +336,8 @@ end;
 //Calculate Monorail Paths
 procedure CalculateMonorailPaths();
 var
-    i         : integer;
-    tempName  : integer;
+    i         : UInt8;
+    tempName  : UInt8;
 begin
     for i := 1 to NUM_OF_MON do
     begin
@@ -362,11 +363,19 @@ end;
 //Hanger Movement
 procedure MoveHanger(i_move : integer; position : integer);
 var
-    i                 : integer; 
-    tempName          : integer;
-    halfPath          : integer;
-    currentMonorail   : integer;
-    movementDirection : integer;
+    tempName          : UInt8;
+    halfPath          : UInt32;
+    currentMonorail   : UInt8;
+    movementDirection : UInt8;
+    hangerTop         : UInt16;
+    hangerLeft        : UInt16;
+    hangerWidth       : UInt16;
+    hangerHeight      : UInt16;
+    monorailTop       : UInt16;
+    monorailLeft      : UInt16;
+    monorailWidth     : UInt16;
+    monorailHeight    : UInt16;
+    curMonorailPath   : UInt32;
 begin
     //Find Monorail Number On Which The Hanger Is Located
     currentMonorail := FindCurrentMonorail(i_move, position); 
@@ -374,172 +383,181 @@ begin
     movementDirection := tcMonorail[currentMonorail].Tag; 
     //Template Name of Current Monorail
     tempName := monorailIdentifier[currentMonorail];    
-    
+    //store to local data
+    hangerTop       := rtHanger[i_move].Top;
+    hangerLeft      := rtHanger[i_move].Left;
+    hangerWidth     := rtHanger[i_move].Width;
+    hangerHeight    := rtHanger[i_move].Height;
+    monorailTop     := tcMonorail[currentMonorail].Top;
+    monorailLeft    := tcMonorail[currentMonorail].Left;
+    monorailWidth   := tcMonorail[currentMonorail].Width;
+    monorailHeight  := tcMonorail[currentMonorail].Height;
+    curMonorailPath := monorailPath[currentMonorail];
     //Test Current Monorail Type 
     if (tempName = I_CUR_1) then
     begin
         //Half Path of Current Monorail
-        halfPath := Round(tcMonorail[currentMonorail].Width - (0.125 * tcMonorail[currentMonorail].Width));
+        halfPath := Round(monorailWidth - (0.125 * monorailWidth));
         //Test Current Monorail Direction
         if (movementDirection = LEFT_D) then
         begin 
             //Last Half of Path
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - halfPath + 10))) then
+            if ((position <= monorailPath[currentMonorail]) AND (position >= (curMonorailPath - halfPath + 10))) then
             begin
                 // X coordinate fixed, Y coordinate changes with position from DB
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Height / 2);
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Abs(position - monorailPath[currentMonorail] + halfPath);
+                hangerTop := monorailTop + Round(0.125 * monorailWidth) - Round(hangerHeight / 2);
+                hangerLeft := monorailLeft + Abs(position - curMonorailPath + halfPath);
             end
             //First Half of Path
             else if (position < (monorailPath[currentMonorail] - halfpath - 10)) then  
             begin
                 // Y coordinate fixed, X coordinate changes with position from DB
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.875 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);                     
+                hangerTop := monorailTop;
+                hangerLeft := monorailLeft + Round(0.875 * monorailWidth) - Round(hangerWidth / 2);                     
             end
             //Center of Path
             else
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Height / 2) + 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left; 
+                hangerTop := monorailTop + Round(0.125 * monorailWidth) - Round(hangerHeight / 2) + 8;
+                hangerLeft := monorailLeft; 
             end;
         end
         else if (movementDirection = DOWN_D) then
         begin 
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - halfPath + 10))) then
+            if ((position <= curMonorailPath) AND (position >= (curMonorailPath - halfPath + 10))) then
             begin
-                rtHanger[i_move].Top := position;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.875 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);
+                hangerTop := position;
+                hangerLeft := monorailLeft + Round(0.875 * monorailWidth) - Round(hangerWidth / 2);
             end
-            else if (position < (monorailPath[currentMonorail] - halfpath - 10)) then
+            else if (position < (curMonorailPath - halfpath - 10)) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Height / 2);
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left;
+                hangerTop := monorailTop + Round(0.125 * monorailWidth) - Round(hangerHeight / 2);
+                hangerLeft := monorailLeft;
             end
             else
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Height / 2) + 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left; 
+                hangerTop := monorailTop + Round(0.125 * monorailWidth) - Round(hangerHeight / 2) + 8;
+                hangerLeft := monorailLeft; 
             end;
         end;
     end
     else if (tempName = I_CUR_2) then
     begin
-        halfPath := Round(tcMonorail[currentMonorail].Width - (0.125 * tcMonorail[currentMonorail].Width));
+        halfPath := Round(monorailWidth - (0.125 * monorailWidth));
         if (movementDirection = LEFT_D) then
         begin
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - halfPath + 10))) then
+            if ((position <= curMonorailPath) AND (position >= (curMonorailPath - halfPath + 10))) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.875 * tcMonorail[currentMonorail].Height) - Round(rtHanger[i_move].Height / 2);
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Abs(position - monorailPath[currentMonorail] + halfPath);
+                hangerTop := monorailTop + Round(0.875 * monorailHeight) - Round(hangerHeight / 2);
+                hangerLeft := monorailLeft + Abs(position - curMonorailPath + halfPath);
             end 
-            else if (position < (monorailPath[currentMonorail] - halfpath - 10)) then
+            else if (position < (curMonorailPath - halfpath - 10)) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.875 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);
+                hangerTop := monorailTop;
+                hangerLeft := monorailLeft + Round(0.875 * monorailWidth) - Round(hangerWidth / 2);
             end
             else 
             begin  
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + halfPath - Round(rtHanger[i_move].Height / 2) - 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.875 * tcMonorail[currentMonorail].Width) - rtHanger[i_move].Width + 8;                 
+                hangerTop := monorailTop + halfPath - Round(hangerHeight / 2) - 8;
+                hangerLeft := monorailLeft + Round(0.875 * monorailWidth) - hangerWidth + 8;                 
             end; 
         end
         else if (movementDirection = UP_D) then
         begin
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - halfPath + 10))) then
+            if ((position <= curMonorailPath) AND (position >= (curMonorailPath - halfPath + 10))) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.875 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);
+                hangerTop := monorailTop;
+                hangerLeft := tcMonorail[currentMonorail].Left + Round(0.875 * monorailWidth) - Round(hangerWidth / 2);
             end
-            else if (position < (monorailPath[currentMonorail] - halfpath - 10)) then
+            else if (position < (curMonorailPath - halfpath - 10)) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.875 * tcMonorail[currentMonorail].Height) - Round(rtHanger[i_move].Height / 2);
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left;
+                hangerTop := monorailTop + Round(0.875 * monorailHeight) - hangerHeight / 2);
+                hangerLeft := monorailLeft;
             end
             else
             begin 
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + halfPath - Round(rtHanger[i_move].Height / 2) - 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.875 * tcMonorail[currentMonorail].Width) - rtHanger[i_move].Width + 8;  
+                hangerTop := monorailTop + halfPath - Round(hangerHeight / 2) - 8;
+                hangerLeft := monorailLeft + Round(0.875 * monorailWidth) - hangerWidth + 8;  
             end;
         end;
     end 
     else if (tempName = I_CUR_3) then
     begin 
-        halfPath := Round(tcMonorail[currentMonorail].Width - (0.125 * tcMonorail[currentMonorail].Width)); 
+        halfPath := Round(monorailWidth - (0.125 * monorailWidth)); 
         if (movementDirection = RIGHT_D) then
         begin
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - (halfPath + 10)))) then
+            if ((position <= curMonorailPath) AND (position >= (curMonorailPath - (halfPath + 10)))) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Height) - Round(rtHanger[i_move].Height / 2) + 1;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left - (monorailPath[currentMonorail] - halfPath - position) + Round(rtHanger[i_move].Width / 4) - 10;
+                hangerTop := monorailTop + Round(0.125 * monorailHeight) - Round(hangerHeight / 2) + 1;
+                hangerLeft := monorailLeft - (curMonorailPath - halfPath - position) + Round(hangerWidth / 4) - 10;
             end
-            else if (position < (monorailPath[currentMonorail] - halfpath - 25)) then 
+            else if (position < (curMonorailPath - halfpath - 25)) then 
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Abs(position - monorailPath[currentMonorail] + halfPath) - rtHanger[i_move].Height + 10;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2) - 1;                  
+                hangerTop := monorailTop + Abs(position - curMonorailPath + halfPath) - hangerHeight + 10;
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2) - 1;                  
             end
             else
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Height / 2) + 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);
+                hangerTop := monorailTop + Round(0.125 * monorailWidth) - Round(hangerHeight / 2) + 8;
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2);
             end;
         end
         else if (movementDirection = DOWN_D) then
         begin
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - halfPath + 10))) then
+            if ((position <= curMonorailPath) AND (position >= (curMonorailPath - halfPath + 10))) then
             begin  
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Abs(position - monorailPath[currentMonorail] + halfPath);
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2); 
+                hangerTop := monorailTop + Abs(position - curMonorailPath + halfPath);
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2); 
             end
-            else if (position < (monorailPath[currentMonorail] - halfpath - 10)) then 
+            else if (position < (curMonorailPath - halfpath - 10)) then 
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Height) - Round(rtHanger[i_move].Height / 2) + 1;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Abs(position - monorailPath[currentMonorail] - halfPath) - rtHanger[i_move].Width; 
+                hangerTop := monorailTop + Round(0.125 * monorailHeight) - Round(hangerHeight / 2) + 1;
+                hangerLeft := monorailLeft + Abs(position - curMonorailPath - halfPath) - hangerWidth; 
             end
             else 
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Height / 2) + 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);
+                hangerTop := monorailTop + Round(0.125 * monorailWidth) - Round(hangerHeight / 2) + 8;
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2);
             end;
         end;
     end
     else if (tempName = I_CUR_4) then
     begin
-        halfPath := Round(tcMonorail[currentMonorail].Width - (0.125 * tcMonorail[currentMonorail].Width));
+        halfPath := Round(monorailWidth - (0.125 * monorailWidth));
         if (movementDirection = RIGHT_D) then
         begin
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - halfPath + 10))) then
+            if ((position <= curMonorailPath) AND (position >= (curMonorailPath - halfPath + 10))) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.875 * tcMonorail[currentMonorail].Height) - Round(rtHanger[i_move].Height / 2);
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left - (monorailPath[currentMonorail] - halfPath - position) + Round(rtHanger[i_move].Width / 4) - 10;
+                hangerTop := monorailTop + Round(0.875 * monorailHeight) - Round(hangerHeight / 2);
+                hangerLeft := monorailLeft - (curMonorailPath - halfPath - position) + Round(hangerWidth / 4) - 10;
             end
-            else if (position < (monorailPath[currentMonorail] - halfpath - 10)) then
+            else if (position < (curMonorailPath - halfpath - 10)) then
             begin 
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + halfPath - (monorailPath[currentMonorail] - position) + rtHanger[i_move].Height;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2) - 1;
+                hangerTop := monorailTop + halfPath - (curMonorailPath - position) + hangerHeight;
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2) - 1;
             end
             else 
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + halfPath - Round(rtHanger[i_move].Height / 2) - 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);
+                hangerTop := monorailTop + halfPath - Round(hangerHeight / 2) - 8;
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2);
             end;
         end
         else if (movementDirection = UP_D) then
         begin
-            if ((position <= monorailPath[currentMonorail]) AND (position >= (monorailPath[currentMonorail] - halfPath))) then
+            if ((position <= monorailPath[currentMonorail]) AND (position >= (curMonorailPath - halfPath))) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + (monorailPath[currentMonorail] - position) - rtHanger[i_move].Height;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2) - 1;
+                hangerTop := monorailTop + (curMonorailPath - position) - hangerHeight;
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2) - 1;
             end
             else if (position < (monorailPath[currentMonorail] - halfpath - 14)) then
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + Round(0.875 * tcMonorail[currentMonorail].Height) - Round(rtHanger[i_move].Height / 2) - 2;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + (monorailPath[currentMonorail] - halfPath - position) + Round(rtHanger[i_move].Width / 4) - 10;
+                hangerTop := monorailTop + Round(0.875 * monorailHeight) - Round(hangerHeight / 2) - 2;
+                hangerLeft := monorailLeft + (curMonorailPath - halfPath - position) + Round(hangerWidth / 4) - 10;
             end
             else
             begin
-                rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + halfPath - Round(rtHanger[i_move].Height / 2) - 8;
-                rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + Round(0.125 * tcMonorail[currentMonorail].Width) - Round(rtHanger[i_move].Width / 2);
+                hangerTop := monorailTop + halfPath - Round(hangerHeight / 2) - 8;
+                hangerLeft := monorailLeft + Round(0.125 * monorailWidth) - Round(hangerWidth / 2);
             end;
         end;
     end 
@@ -547,53 +565,58 @@ begin
     begin 
         if (movementDirection = LEFT_D) then
         begin
-            rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + (monorailPath[currentMonorail] - position);
+            hangerLeft := monorailLeft + (curMonorailPath - position);
             if ((tempName = I_HOR_R) OR (tempName = I_HOR_REL) OR (tempName = I_HOR_RER)) then
             begin 
-                rtHanger[i_move].Top := Round((tcMonorail[currentMonorail].Top) + ((tcMonorail[currentMonorail].Height + rtHanger[i_move].Height) / 6)); 
+                hangerTop := Round(monorailTop + ((monorailHeight + hangerHeight) / 6)); 
             end
             else if ((tempName = I_HOR_L) OR (tempName = I_HOR_M) OR (tempName = I_HOR_K)) then
             begin 
-                rtHanger[i_move].Top := Round((tcMonorail[currentMonorail].Top) - ((tcMonorail[currentMonorail].Height + rtHanger[i_move].Height) / 6)) - 2;
+                hangerTop := Round(monorailTop - ((monorailHeight + hangerHeight) / 6)) - 2;
             end;    
         end
         else if (movementDirection = RIGHT_D) then
         begin
-            rtHanger[i_move].Left := tcMonorail[currentMonorail].Left + (tcMonorail[currentMonorail].Width - (monorailPath[currentMonorail] - position));
+            hangerLeft := monorailLeft + (monorailWidth - (curMonorailPath - position));
             if ((tempName = I_HOR_R) OR (tempName = I_HOR_REL) OR (tempName = I_HOR_RER)) then
             begin 
-                rtHanger[i_move].Top := Round((tcMonorail[currentMonorail].Top) + ((tcMonorail[currentMonorail].Height + rtHanger[i_move].Height) / 6)); 
+                hangerTop := Round(monorailTop + ((monorailHeight + hangerHeight) / 6)); 
             end
             else if ((tempName = I_HOR_L) OR (tempName = I_HOR_M) OR (tempName = I_HOR_K)) then
             begin 
-                rtHanger[i_move].Top := Round((tcMonorail[currentMonorail].Top) - ((tcMonorail[currentMonorail].Height + rtHanger[i_move].Height) / 6)) - 2;
+                hangerTop := Round(monorailTop - ((monorailHeight + hangerHeight) / 6)) - 2;
             end;
         end
         else if (movementDirection = UP_D) then
         begin 
-            rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + (monorailPath[currentMonorail] - position - rtHanger[i_move].Height); 
+            hangerTop := monorailTop + (curMonorailPath - position - hangerHeight); 
             if ((tempName = I_VER_R) OR (tempName = I_VER_RET) OR (tempName = I_VER_REB)) then
             begin
-                rtHanger[i_move].Left := Round((tcMonorail[currentMonorail].Left) + ((tcMonorail[currentMonorail].Width + rtHanger[i_move].Width) / 3));
+                hangerLeft := Round(monorailLeft + ((monorailWidth + hangerWidth) / 3));
             end
             else if ((tempName = I_VER_L) OR (tempName = I_VER_M) OR (tempName = I_VER_K)) then
             begin
-                rtHanger[i_move].Left := Round((tcMonorail[currentMonorail].Left) - ((tcMonorail[currentMonorail].Width + rtHanger[i_move].Width) / 3));
+                hangerLeft := Round(monorailLeft - (monorailWidth + hangerWidth) / 3));
             end;
         end
         else if (movementDirection = DOWN_D) then
         begin
-            rtHanger[i_move].Top := tcMonorail[currentMonorail].Top + (tcMonorail[currentMonorail].Height - (monorailPath[currentMonorail] - position)); 
+            hangerTop := monorailTop + (monorailHeight - (curMonorailPath - position)); 
             if ((tempName = I_VER_R) OR (tempName = I_VER_RET) OR (tempName = I_VER_REB)) then
             begin
-                rtHanger[i_move].Left := Round((tcMonorail[currentMonorail].Left) + ((tcMonorail[currentMonorail].Width + rtHanger[i_move].Width) / 3));
+                hangerLeft := Round(monorailLeft + ((monorailWidth + hangerWidth) / 3));
             end
             else if ((tempName = I_VER_L) OR (tempName = I_VER_M) OR (tempName = I_VER_K)) then
             begin
-                rtHanger[i_move].Left := Round((tcMonorail[currentMonorail].Left) - ((tcMonorail[currentMonorail].Width + rtHanger[i_move].Width) / 3));
+                hangerLeft := Round(monorailLeft - ((monorailWidth + hangerWidth) / 3));
             end;
         end; 
-    end;                                       
+    end;    
+    //Send the position to hanger Rectangle
+    rtHanger[i_move].Top    := hangerTop;
+    rtHanger[i_move].Left   := hangerLeft;
+    rtHanger[i_move].Width  := hangerWidth;
+    rtHanger[i_move].Height := hangerHeight;
 end;
 
 
@@ -601,8 +624,8 @@ end;
 //Find Current Monorail
 function FindCurrentMonorail(i_current : integer; position_m : integer) : integer;
 var 
-    i                : integer; 
-    tempName         : integer;
+    i        : integer; 
+    tempName : integer;
 begin
     for i := 1 to NUM_OF_MON do
     begin
