@@ -83,8 +83,8 @@ const
 
 //Variables
 var
-    scaledPosition      : real = 1;
-    scaledPath          : real = 1;
+    scaledPosition      : single = 1;
+    scaledPath          : single = 1;
     
     tlHanger            : array[1..NUM_OF_FG] of TIsi_TagItemList;          //Hanger Tag Item Lists Array
     tiHanger            : array[1..NUM_OF_FG] of TIsi_TagItem;              //Hanger Tag Items Array
@@ -92,8 +92,8 @@ var
     S7DeviceLabel       : array[1..NUM_OF_FG] of TIsi_S7DeviceLabel;        //S7 Device Labels Array
     
     tcMonorail          : array[1..NUM_OF_MON] of TIsi_ImgTmplContainer;    //Monorail Elements     
-    monorailIdentifier  : array[1..NUM_OF_MON] of integer;                  //Monorail Type Identifier
-    monorailPath        : array[1..NUM_OF_MON] of integer;                  //Individaual Element Path
+    monorailIdentifier  : array[1..NUM_OF_MON] of UInt16;                   //Monorail Type Identifier
+    monorailPath        : array[1..NUM_OF_MON] of UInt16;                   //Individaual Element Path
     totalPath           : UInt32 = 0;                                       //Total Monorail Path
     i_monorail          : UInt8 = 1;                                        //Interation of Monorail 
     
@@ -133,7 +133,7 @@ begin
     SetupHangers();           
 end;
 
-//Private Monorail Class Method : Get monorail identifier
+//Create an Integer identifier to replace a String
 function GetMonorailIdentifier(s : string) : integer;
 begin
     if(s = HOR_L) then
@@ -308,8 +308,7 @@ begin
     for i := 1 to NUM_OF_FG do
     begin
         position_t := Round(((tiHanger[i].Value) / REAL_PATH) * monorailPath[NUM_OF_MON]);
-        try
-        MoveHanger(i, position_t);           
+        try          
         except on E:Exception do ShowMessage(E.Message);
         end;
         if position_t >= monorailPath[NUM_OF_MON] then
@@ -323,6 +322,7 @@ begin
         else
         begin
             rtHanger[i].Visible := TRUE;
+            MoveHanger(i, position_t); 
         end; 
     end;    
     
@@ -331,7 +331,7 @@ begin
 end;
 
 {*******************************************************************************
-*       Code related to movement of elements
+*       Movement of Elements
 *******************************************************************************}
 //Calculate Monorail Paths
 procedure CalculateMonorailPaths();
@@ -394,6 +394,7 @@ begin
     monorailHeight  := tcMonorail[currentMonorail].Height;
     curMonorailPath := monorailPath[currentMonorail];
     //Test Current Monorail Type 
+    //Monorail type is a Curve
     if (tempName = I_CUR_1) then
     begin
         //Half Path of Current Monorail
@@ -561,6 +562,7 @@ begin
             end;
         end;
     end 
+    //Monorail is not a Curve
     else
     begin 
         if (movementDirection = LEFT_D) then
@@ -618,8 +620,6 @@ begin
     rtHanger[i_move].Width  := hangerWidth;
     rtHanger[i_move].Height := hangerHeight;
 end;
-
-
 
 //Find Current Monorail
 function FindCurrentMonorail(i_current : integer; position_m : integer) : integer;
