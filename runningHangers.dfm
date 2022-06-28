@@ -28,9 +28,16 @@ const
     FG_NAME    = '302EHV';  //Hanger Function Group Name
     FG_START   = 301;       //Hanger Function Group Start Number
     NUM_OF_FG  = 13;        //Number of Hanger Function Groups 
+{*******************************************************************************
+ *   Hanger function group e.g.:
+ *       FG_NAME + FG_START
+ *   '302EHV301' ... '302EHV313'
+ *******************************************************************************
+}   
+    
     NUM_OF_MON = 6;         //Number of Monorail Elements
     NUM_OF_POS = 203200;    //Number of Bar Code Positions 
-    RESOLUTION = 100000;
+    RESOLUTION = 100000;    //Points per whole path
     
     REAL_PATH = 203200;     //Real monorail path in [mm]     
     
