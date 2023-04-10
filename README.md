@@ -1,7 +1,7 @@
 # Running hangers
 About
 -----
-Daimler AG uses Integra Designer Pro (IDPro) as a proprietary tool for developing the visualization of the PLC data.
+Daimler AG uses Integra Designer Pro (IDPro) as a proprietary framework for developing the visualization of the PLC data.
 This tool uses Pascal/Delphi to create visual objects that are displayed on Windows machine.
 
 The script in this repo is used to move objects across the Canvas.
